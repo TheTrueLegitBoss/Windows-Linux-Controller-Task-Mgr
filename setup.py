@@ -39,6 +39,7 @@ def main():
         ("pip install psutil", "psutil (Process and system utilities)"),
         ("pip install PyQt5", "PyQt5 (GUI framework)"),
         ("pip install tabulate", "tabulate (Table formatting)"),
+        ("pip install pygame", "pygame (Gamepad support)"),
     ]
     
     success_count = 0
