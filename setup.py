@@ -38,6 +38,7 @@ def main():
     dependencies = [
         ("pip install psutil", "psutil (Process and system utilities)"),
         ("pip install PyQt5", "PyQt5 (GUI framework)"),
+        ("pip install PyQtWebEngine", "PyQtWebEngine (Embedded browser support)"),
         ("pip install tabulate", "tabulate (Table formatting)"),
         ("pip install pygame", "pygame (Gamepad support)"),
     ]
