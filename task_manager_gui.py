@@ -389,10 +389,11 @@ class DataFetcher(QObject):
         def _fetch():
             try:
                 mem = psutil.virtual_memory()
+                gb_divisor = 1073741824  # 1024**3 cached as constant
                 mem_info = {
-                    'total': round(mem.total / (1024**3), 2),
-                    'used': round(mem.used / (1024**3), 2),
-                    'available': round(mem.available / (1024**3), 2),
+                    'total': round(mem.total / gb_divisor, 2),
+                    'used': round(mem.used / gb_divisor, 2),
+                    'available': round(mem.available / gb_divisor, 2),
                     'percent': round(mem.percent, 1)
                 }
                 
@@ -419,13 +420,14 @@ class DataFetcher(QObject):
                             except (psutil.AccessDenied, psutil.NoSuchProcess):
                                 cpu_percent = 0.0
                             
-                            # Get disk I/O - simplified calculation
+                            # Get disk I/O - skip for low-activity processes to save CPU
                             disk_mb = 0.0
-                            try:
-                                io = proc.io_counters()
-                                disk_mb = round((io.read_bytes + io.write_bytes) / 1048576, 1)
-                            except (psutil.AccessDenied, psutil.NoSuchProcess, AttributeError):
-                                pass
+                            if memory_mb > 10:  # Only check disk I/O for processes using >10MB RAM
+                                try:
+                                    io = proc.io_counters()
+                                    disk_mb = round((io.read_bytes + io.write_bytes) / 1048576, 1)
+                                except (psutil.AccessDenied, psutil.NoSuchProcess, AttributeError):
+                                    pass
                             
                             # Handle username - Windows may return None or DOMAIN\User format
                             username = pinfo.get('username') or 'unknown'
@@ -1143,7 +1145,7 @@ class TaskManagerGUI(QMainWindow):
         if self.gamepad:
             self.gamepad_timer = QTimer()
             self.gamepad_timer.timeout.connect(self.process_gamepad_input)
-            self.gamepad_timer.start(100)  # Poll gamepad every 100ms
+            self.gamepad_timer.start(150)  # Poll gamepad every 150ms (reduced for CPU efficiency)
         
         # Timer for auto-refresh
         self.timer = QTimer()
@@ -2207,11 +2209,9 @@ class TaskManagerGUI(QMainWindow):
         
         try:
             # Process all pygame events to update joystick state
-            for event in pygame.event.get():
-                pass  # Just process events, don't need to handle them
-            
-            # Also pump events to ensure state is updated
-            pygame.event.pump()
+            events = pygame.event.get()
+            if not events:
+                pygame.event.pump()  # Only pump if no events to process
             
             # Handle menu navigation if a menu is active
             if self.active_menu and self.active_menu.isVisible():
@@ -2843,14 +2843,15 @@ class TaskManagerGUI(QMainWindow):
             else:
                 color = color_none
             
-            # Apply color to items before setting them
-            pid_item.setBackground(color)
-            user_item.setBackground(color)
-            name_item.setBackground(color)
-            cpu_item.setBackground(color)
-            ram_item.setBackground(color)
-            percent_item.setBackground(color)
-            disk_item.setBackground(color)
+            # Apply color to items before setting them (only if not default)
+            if color is not color_none:
+                pid_item.setBackground(color)
+                user_item.setBackground(color)
+                name_item.setBackground(color)
+                cpu_item.setBackground(color)
+                ram_item.setBackground(color)
+                percent_item.setBackground(color)
+                disk_item.setBackground(color)
             
             # Set items in table
             self.table.setItem(row, 0, pid_item)
